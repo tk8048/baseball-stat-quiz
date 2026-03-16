@@ -70,7 +70,7 @@ def get_players():
             if not stat_list: continue
             stat = stat_list[0]['splits'][0]['stat']
             
-            approx_war = round(float(stat.get('wins', 0)) * 1.5 + float(stat.get('strikeouts', 0)) / 50.0, 1)
+            approx_war = round(float(stat.get('wins', 0)) * 1.5 + float(stat.get('strikeOuts', 0)) / 50.0, 1)
 
             players.append({
                 "name": name,
@@ -79,7 +79,7 @@ def get_players():
                 "stats": {
                     "ERA": round(float(stat.get('era', 0)), 2),
                     "Wins": int(stat.get('wins', 0)),
-                    "Strikeouts": int(stat.get('strikeouts', 0))
+                    "Strikeouts": int(stat.get('strikeOuts', 0))
                 }
             })
         except Exception as e:
