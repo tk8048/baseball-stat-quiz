@@ -23,12 +23,18 @@ let typingInterval = null;
 let typingTimeout = null;
 
 let players = [];
-let currentPlayer = null;
+let currentOptions = [];
 let currentStat = null;
 let currentAnswer = null;
+let currentDirectionLabel = null;
 let streak = 0;
 let lives = 3;
 let winScreenShown = false;
+
+const STAT_CONFIG = {
+    hitter: ['Home Runs', 'Hits', 'Batting Average'],
+    pitcher: ['ERA', 'Strikeouts']
+};
 
 // Base positions in SVG coordinates (translate values for the runner icon)
 const BASE_POSITIONS = {
@@ -58,20 +64,33 @@ async function init() {
 }
 
 function nextRound() {
-    // Pick random player
-    currentPlayer = players[Math.floor(Math.random() * players.length)];
+    // Pick random type
+    const types = ['hitter', 'pitcher'];
+    const selectedType = types[Math.floor(Math.random() * types.length)];
     
-    // Pick random stat
-    const stats = Object.keys(currentPlayer.stats);
-    currentStat = stats[Math.floor(Math.random() * stats.length)];
-    currentAnswer = currentPlayer.name;
+    // Pick random stat from that type
+    const availableStats = STAT_CONFIG[selectedType];
+    currentStat = availableStats[Math.floor(Math.random() * availableStats.length)];
+    
+    // Generate options and determine winner
+    currentOptions = generateOptions(selectedType, currentStat);
+    
+    // The correct answer is the player with the "best" stat
+    const bestPlayer = determineWinner(currentOptions, currentStat);
+    currentAnswer = bestPlayer.name;
 
-    const statValue = currentPlayer.stats[currentStat];
-    const formattedValue = formatStatValue(currentStat, statValue);
-    const typeLabel = currentPlayer.type === 'hitter' ? 'hitters' : 'pitchers';
-
-    // Build question as plain text for typewriter
-    const questionPlain = `Which of these ${typeLabel} had a career ${currentStat} of ${formattedValue}?`;
+    // Build question
+    const countingStats = ['Home Runs', 'Hits', 'Strikeouts'];
+    const rateStats = ['Batting Average', 'ERA'];
+    const isLowestBetter = (currentStat === 'ERA');
+    
+    if (countingStats.includes(currentStat)) {
+        currentDirectionLabel = isLowestBetter ? 'fewest' : 'most';
+    } else {
+        currentDirectionLabel = isLowestBetter ? 'lowest' : 'highest';
+    }
+    
+    const questionText = `Which of these players has the ${currentDirectionLabel} career ${currentStat}?`;
     
     // Reset UI
     UI.optionsContainer.innerHTML = '';
@@ -79,54 +98,101 @@ function nextRound() {
     UI.nextBtn.classList.add('hidden');
 
     // Play typewriter animation
-    playTypewriterAnimation(questionPlain);
+    playTypewriterAnimation(questionText);
 
-    // Generate player-name options
-    const options = generateOptions(currentPlayer, currentStat);
-    
-    options.forEach(playerName => {
+    // Create buttons
+    currentOptions.forEach(player => {
         const btn = document.createElement('button');
         btn.className = 'option-btn';
-        btn.innerText = playerName;
-        btn.onclick = () => checkAnswer(playerName, btn);
+        btn.innerText = player.name;
+        btn.onclick = () => checkAnswer(player.name, btn);
         UI.optionsContainer.appendChild(btn);
     });
 }
 
-function generateOptions(playerObj, statName) {
-    const correctName = playerObj.name;
-    const correctValue = formatStatValue(statName, playerObj.stats[statName]);
+function generateOptions(type, statName, depth = 0) {
+    // Pick a seed player
+    const typePlayers = players.filter(p => p.type === type);
+    const seed = typePlayers[Math.floor(Math.random() * typePlayers.length)];
     
-    let optionNames = new Set();
-    optionNames.add(correctName);
-    let options = [correctName];
+    // Find all other peers of same type
+    let peers = typePlayers.filter(p => p.name !== seed.name);
     
-    let peers = players.filter(p => p.type === playerObj.type && p.name !== playerObj.name);
-    peers.sort((a, b) => Math.abs(a.war - playerObj.war) - Math.abs(b.war - playerObj.war));
+    // Sort by WAR similarity
+    peers.sort((a, b) => Math.abs(a.war - seed.war) - Math.abs(b.war - seed.war));
     
-    let peerIndex = 0;
-    while (options.length < 4 && peerIndex < peers.length) {
-        const peer = peers[peerIndex];
-        peerIndex++;
-        if (optionNames.has(peer.name)) continue;
-        const peerValue = formatStatValue(statName, peer.stats[statName]);
-        if (peerValue === correctValue) continue;
-        optionNames.add(peer.name);
-        options.push(peer.name);
+    // Take 10 closest
+    let pool = peers.slice(0, 10);
+    
+    // Randomly pick 3 from the pool
+    let selectedPeers = [];
+    while (selectedPeers.length < 3 && pool.length > 0) {
+        const idx = Math.floor(Math.random() * pool.length);
+        selectedPeers.push(pool.splice(idx, 1)[0]);
     }
     
-    // Fallback
-    peerIndex = 0;
-    while (options.length < 4 && peerIndex < peers.length) {
-        const peer = peers[peerIndex];
-        peerIndex++;
-        if (!optionNames.has(peer.name)) {
-            optionNames.add(peer.name);
-            options.push(peer.name);
-        }
-    }
+    let options = [seed, ...selectedPeers];
     
+    // Ensure there is only one winner. 
+    // depth < 5 prevents infinite recursion in case of bad data.
+    if (hasTie(options, statName) && depth < 5) {
+        return generateOptions(type, statName, depth + 1);
+    }
+
     return options.sort(() => Math.random() - 0.5);
+}
+
+function determineWinner(options, statName) {
+    let winner = options[0];
+    const isLowestBetter = (statName === 'ERA');
+
+    options.forEach(p => {
+        const val = p.stats[statName];
+        const winVal = winner.stats[statName];
+        
+        // Use formatted values to ensure the winner matches what players see
+        const fmtVal = parseFloat(formatStatValue(statName, val).replace(/[^0-9.]/g, ''));
+        const fmtWinVal = parseFloat(formatStatValue(statName, winVal).replace(/[^0-9.]/g, ''));
+
+        if (isLowestBetter) {
+            if (fmtVal < fmtWinVal) winner = p;
+        } else {
+            if (fmtVal > fmtWinVal) winner = p;
+        }
+    });
+
+    return winner;
+}
+
+function hasTie(options, statName) {
+    // Compare formatted values because that's what the user sees
+    const values = options.map(p => {
+        const fmt = formatStatValue(statName, p.stats[statName]);
+        // Remove leading dot or other symbols for numerical comparison if needed, 
+        // but simple string comparison works for ties if formatting is identical.
+        return fmt;
+    });
+    
+    const isLowestBetter = (statName === 'ERA');
+    
+    // Find "best" formatted value
+    let bestValue = values[0];
+    values.forEach(v => {
+        const numV = parseFloat(v.startsWith('.') ? '0' + v : v);
+        const numBest = parseFloat(bestValue.startsWith('.') ? '0' + bestValue : bestValue);
+        
+        if (isLowestBetter) {
+            if (numV < numBest) bestValue = v;
+        } else {
+            if (numV > numBest) bestValue = v;
+        }
+    });
+    
+    let count = 0;
+    values.forEach(v => {
+        if (v === bestValue) count++;
+    });
+    return count > 1;
 }
 
 function formatStatValue(statName, value) {
@@ -144,11 +210,18 @@ function formatStatValue(statName, value) {
 function checkAnswer(selectedName, selectedBtn) {
     const isCorrect = selectedName === currentAnswer;
     
+    // Reveal stats for all buttons
     const buttons = UI.optionsContainer.querySelectorAll('.option-btn');
-    buttons.forEach(b => {
+    buttons.forEach((b) => {
         b.disabled = true;
-        if (b.innerText === currentAnswer) {
-            b.classList.add('correct');
+        const player = currentOptions.find(p => p.name === b.innerText);
+        if (player) {
+            const formattedVal = formatStatValue(currentStat, player.stats[currentStat]);
+            b.innerHTML = `${player.name} <span class="stat-reveal">(${formattedVal} ${currentStat})</span>`;
+            
+            if (player.name === currentAnswer) {
+                b.classList.add('correct');
+            }
         }
     });
 
@@ -161,7 +234,7 @@ function checkAnswer(selectedName, selectedBtn) {
         UI.feedback.className = 'feedback success';
         UI.streakCounter.parentElement.style.transform = 'scale(1.1)';
         setTimeout(() => UI.streakCounter.parentElement.style.transform = 'scale(1)', 200);
-        UI.feedback.innerHTML = `Correct! It was <strong>${currentAnswer}</strong>.`;
+        UI.feedback.innerHTML = `Correct! <strong>${currentAnswer}</strong> has the ${currentDirectionLabel}.`;
     } else {
         lives--;
         updateLivesUI();
@@ -215,7 +288,7 @@ function updateRunner() {
         else if (position === 2) pos = BASE_POSITIONS.second;
         else pos = BASE_POSITIONS.third;
         
-        UI.runnerIcon.setAttribute('transform', `translate(${pos.x}, ${pos.y})`);
+        UI.runnerIcon.style.transform = `translate(${pos.x}px, ${pos.y}px)`;
     }
 }
 
