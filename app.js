@@ -10,8 +10,13 @@ const UI = {
     streakCounter: document.getElementById('streak-counter'),
     winScreen: document.getElementById('win-screen'),
     resetBtn: document.getElementById('reset-game-btn'),
+    keepPlayingBtn: document.getElementById('keep-playing-btn'),
+    loseScreen: document.getElementById('lose-screen'),
+    loseMessage: document.getElementById('lose-message'),
+    loseResetBtn: document.getElementById('lose-reset-btn'),
     batterIcon: document.getElementById('batter-icon'),
-    runnerIcon: document.getElementById('runner-icon')
+    runnerIcon: document.getElementById('runner-icon'),
+    livesContainer: document.getElementById('lives-container')
 };
 
 let typingInterval = null;
@@ -22,6 +27,8 @@ let currentPlayer = null;
 let currentStat = null;
 let currentAnswer = null;
 let streak = 0;
+let lives = 3;
+let winScreenShown = false;
 
 // Base positions in SVG coordinates (translate values for the runner icon)
 const BASE_POSITIONS = {
@@ -156,20 +163,32 @@ function checkAnswer(selectedName, selectedBtn) {
         setTimeout(() => UI.streakCounter.parentElement.style.transform = 'scale(1)', 200);
         UI.feedback.innerHTML = `Correct! It was <strong>${currentAnswer}</strong>.`;
     } else {
-        streak = 0;
-        UI.feedback.className = 'feedback error';
-        UI.feedback.innerHTML = `Incorrect. The correct answer was <strong>${currentAnswer}</strong>.`;
-        UI.streakCounter.parentElement.style.transform = 'translateX(-5px)';
-        setTimeout(() => UI.streakCounter.parentElement.style.transform = 'translateX(5px)', 50);
-        setTimeout(() => UI.streakCounter.parentElement.style.transform = 'translateX(-5px)', 100);
-        setTimeout(() => UI.streakCounter.parentElement.style.transform = 'translateX(5px)', 150);
-        setTimeout(() => UI.streakCounter.parentElement.style.transform = 'translateX(0)', 200);
+        lives--;
+        updateLivesUI();
+
+        if (lives === 0) {
+            UI.loseMessage.innerHTML = `The correct answer was <strong>${currentAnswer}</strong>. Your streak of <strong>${streak}</strong> has ended.`;
+            setTimeout(() => {
+                UI.loseScreen.classList.remove('hidden');
+            }, 500);
+        } else {
+            UI.feedback.className = 'feedback error';
+            UI.feedback.innerHTML = `Incorrect! That was <strong>${currentAnswer}</strong>.`;
+            
+            // Shake the lives container
+            UI.livesContainer.style.transform = 'translateX(-5px)';
+            setTimeout(() => UI.livesContainer.style.transform = 'translateX(5px)', 50);
+            setTimeout(() => UI.livesContainer.style.transform = 'translateX(-5px)', 100);
+            setTimeout(() => UI.livesContainer.style.transform = 'translateX(5px)', 150);
+            setTimeout(() => UI.livesContainer.style.transform = 'translateX(0)', 200);
+        }
     }
 
     UI.streakCounter.innerText = streak;
     updateRunner();
 
-    if (streak === 4) {
+    if (streak === 4 && !winScreenShown) {
+        winScreenShown = true;
         setTimeout(() => {
             UI.winScreen.classList.remove('hidden');
         }, 500);
@@ -200,12 +219,33 @@ function updateRunner() {
     }
 }
 
+function updateLivesUI() {
+    const hearts = UI.livesContainer.querySelectorAll('.heart');
+    hearts.forEach((heart, index) => {
+        if (index >= lives) {
+            heart.classList.add('lost');
+        } else {
+            heart.classList.remove('lost');
+        }
+    });
+}
+
 function resetGame() {
     streak = 0;
+    lives = 3;
+    winScreenShown = false;
+    updateLivesUI();
     UI.streakCounter.innerText = streak;
     UI.winScreen.classList.add('hidden');
+    UI.loseScreen.classList.add('hidden');
     updateRunner();
     nextRound();
+}
+
+function keepPlaying() {
+    UI.winScreen.classList.add('hidden');
+    UI.nextBtn.classList.remove('hidden');
+    UI.nextBtn.focus();
 }
 
 function playTypewriterAnimation(text) {
@@ -242,6 +282,8 @@ function playTypewriterAnimation(text) {
 
 UI.nextBtn.addEventListener('click', nextRound);
 UI.resetBtn.addEventListener('click', resetGame);
+UI.loseResetBtn.addEventListener('click', resetGame);
+UI.keepPlayingBtn.addEventListener('click', keepPlaying);
 
 // Initialize the game
 init();

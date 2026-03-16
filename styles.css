@@ -30,21 +30,64 @@ body {
     min-height: 100vh;
 }
 
-.streak-container {
+.stats-container {
     position: absolute;
     top: 2rem;
     right: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.75rem;
+    z-index: 10;
+}
+
+.streak-container {
     background: rgba(88, 166, 255, 0.1);
     border: 1px solid var(--accent);
-    padding: 0.5rem 1rem;
+    padding: 0;
+    height: 40px;
+    width: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border-radius: 9999px;
     font-weight: 600;
-    font-size: 1.1rem;
+    font-size: 1rem;
     color: var(--accent);
     backdrop-filter: blur(10px);
     box-shadow: 0 4px 15px rgba(88, 166, 255, 0.2);
+    transition: transform 0.2s, background 0.3s;
+}
+
+.lives-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0;
+    height: 40px;
+    width: 120px;
+    background: rgba(248, 81, 73, 0.1);
+    border: 1px solid var(--danger);
+    border-radius: 9999px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 15px rgba(248, 81, 73, 0.2);
     transition: transform 0.2s;
-    z-index: 10;
+}
+
+.heart {
+    width: 20px;
+    height: 20px;
+    fill: var(--danger);
+    filter: drop-shadow(0 0 2px rgba(248, 81, 73, 0.5));
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.heart.lost {
+    fill: #3e3e3e;
+    opacity: 0.3;
+    filter: grayscale(1);
+    transform: scale(0.85);
 }
 
 .card {
@@ -281,14 +324,50 @@ button:disabled {
     animation: fadeIn 0.5s ease;
 }
 
-.win-card {
+.win-card, .lose-card {
     background: var(--card-bg);
     border: 2px solid var(--accent);
     padding: 3rem;
     border-radius: 24px;
     text-align: center;
     box-shadow: 0 0 50px rgba(88, 166, 255, 0.3);
-    max-width: 400px;
+    max-width: 450px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.lose-card {
+    border-color: var(--danger);
+    box-shadow: 0 0 50px rgba(248, 81, 73, 0.3);
+}
+
+.strikeout-text {
+    font-size: 3rem;
+    color: var(--danger);
+    text-shadow: 0 0 20px rgba(248, 81, 73, 0.5);
+    margin-bottom: 0;
+}
+
+#lose-reset-btn {
+    background: var(--danger);
+    box-shadow: 0 4px 15px rgba(248, 81, 73, 0.3);
+}
+
+#lose-reset-btn:hover {
+    background: #cf3d36;
+    box-shadow: 0 6px 20px rgba(248, 81, 73, 0.4);
+}
+
+.secondary-btn {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 2px solid var(--border) !important;
+    color: var(--text-primary) !important;
+    box-shadow: none !important;
+}
+
+.secondary-btn:hover {
+    background: rgba(255, 255, 255, 0.2) !important;
 }
 
 .win-card h1 {
