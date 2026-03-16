@@ -1,8 +1,8 @@
 name: Daily Stats Sync
 on:
   schedule:
-    - cron: '0 0 * * *' # Runs at midnight UTC daily
-  workflow_dispatch:   # Allows you to trigger it manually
+    - cron: '0 0 * * *' # Midnight UTC
+  workflow_dispatch:   # Manual run
 
 jobs:
   update-stats:
@@ -14,19 +14,24 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Fetches all history so it can merge/rebase correctly
+          fetch-depth: 0 # Fetches full history for rebasing
 
       - name: Set up Python
         uses: actions/setup-python@v4
+
+      - name: Configure Git and Pull Latest
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          # This ensures we are on the absolute latest version of your repo
+          git pull --rebase origin main
 
       - name: Run Update Script
         run: python3 update_players.py
 
       - name: Commit and Push
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add players.json
-          git commit -m "Auto-update players stats [skip ci]" || echo "No changes to commit"
-          git pull --rebase origin main
-          git push
+          # Only commit if players.json actually changed
+          git commit -m "Auto-update players stats [skip ci]" || exit 0
+          git push origin main
