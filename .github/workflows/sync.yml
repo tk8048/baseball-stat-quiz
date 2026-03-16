@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetches all history so it can merge/rebase correctly
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -26,4 +28,5 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add players.json
           git commit -m "Auto-update players stats [skip ci]" || echo "No changes to commit"
+          git pull --rebase origin main
           git push
