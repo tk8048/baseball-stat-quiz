@@ -1,4 +1,5 @@
 const UI = {
+    modeScreen: document.getElementById('mode-screen'),
     loading: document.getElementById('loading'),
     gameArea: document.getElementById('game-area'),
     questionRow: document.getElementById('question-row'),
@@ -30,6 +31,7 @@ let currentDirectionLabel = null;
 let streak = 0;
 let lives = 3;
 let winScreenShown = false;
+let selectedMode = null;
 
 const STAT_CONFIG = {
     hitter: ['Home Runs', 'Hits', 'Batting Average'],
@@ -38,17 +40,36 @@ const STAT_CONFIG = {
 
 // Base positions in SVG coordinates (translate values for the runner icon)
 const BASE_POSITIONS = {
-    home:   { x: 150, y: 195 },
-    first:  { x: 220, y: 125 },
+    home: { x: 150, y: 195 },
+    first: { x: 220, y: 125 },
     second: { x: 150, y: 55 },
-    third:  { x: 80,  y: 125 }
+    third: { x: 80, y: 125 }
 };
+
+function selectMode(mode) {
+    selectedMode = mode;
+
+    // Animate mode screen out
+    UI.modeScreen.classList.add('mode-exit');
+    setTimeout(() => {
+        UI.modeScreen.classList.add('hidden');
+        UI.modeScreen.classList.remove('mode-exit');
+        init();
+    }, 400);
+}
+
+// Expose selectMode globally for onclick handlers
+window.selectMode = selectMode;
 
 async function init() {
     try {
-        const res = await fetch('players.json');
+        UI.loading.classList.remove('hidden');
+
+        // Choose the correct JSON file based on selected mode
+        const jsonFile = selectedMode === 'alltime' ? 'players_alltime.json' : 'players_modern.json';
+        const res = await fetch(jsonFile);
         players = await res.json();
-        
+
         if (!players || players.length === 0) {
             throw new Error('No players found');
         }
@@ -67,14 +88,14 @@ function nextRound() {
     // Pick random type
     const types = ['hitter', 'pitcher'];
     const selectedType = types[Math.floor(Math.random() * types.length)];
-    
+
     // Pick random stat from that type
     const availableStats = STAT_CONFIG[selectedType];
     currentStat = availableStats[Math.floor(Math.random() * availableStats.length)];
-    
+
     // Generate options and determine winner
     currentOptions = generateOptions(selectedType, currentStat);
-    
+
     // The correct answer is the player with the "best" stat
     const bestPlayer = determineWinner(currentOptions, currentStat);
     currentAnswer = bestPlayer.name;
@@ -83,15 +104,15 @@ function nextRound() {
     const countingStats = ['Home Runs', 'Hits', 'Strikeouts', 'Wins'];
     const rateStats = ['Batting Average', 'ERA'];
     const isLowestBetter = (currentStat === 'ERA');
-    
+
     if (countingStats.includes(currentStat)) {
         currentDirectionLabel = isLowestBetter ? 'fewest' : 'most';
     } else {
         currentDirectionLabel = isLowestBetter ? 'lowest' : 'highest';
     }
-    
+
     const questionText = `Which of these players has the ${currentDirectionLabel} career ${currentStat}?`;
-    
+
     // Reset UI
     UI.optionsContainer.innerHTML = '';
     UI.feedback.className = 'feedback hidden';
@@ -114,25 +135,25 @@ function generateOptions(type, statName, depth = 0) {
     // Pick a seed player
     const typePlayers = players.filter(p => p.type === type);
     const seed = typePlayers[Math.floor(Math.random() * typePlayers.length)];
-    
+
     // Find all other peers of same type
     let peers = typePlayers.filter(p => p.name !== seed.name);
-    
+
     // Sort by WAR similarity
     peers.sort((a, b) => Math.abs(a.war - seed.war) - Math.abs(b.war - seed.war));
-    
+
     // Take 10 closest
     let pool = peers.slice(0, 10);
-    
+
     // Randomly pick 3 from the pool
     let selectedPeers = [];
     while (selectedPeers.length < 3 && pool.length > 0) {
         const idx = Math.floor(Math.random() * pool.length);
         selectedPeers.push(pool.splice(idx, 1)[0]);
     }
-    
+
     let options = [seed, ...selectedPeers];
-    
+
     // Ensure there is only one winner. 
     // depth < 5 prevents infinite recursion in case of bad data.
     if (hasTie(options, statName) && depth < 5) {
@@ -149,7 +170,7 @@ function determineWinner(options, statName) {
     options.forEach(p => {
         const val = p.stats[statName];
         const winVal = winner.stats[statName];
-        
+
         // Use formatted values to ensure the winner matches what players see
         const fmtVal = parseFloat(formatStatValue(statName, val).replace(/[^0-9.]/g, ''));
         const fmtWinVal = parseFloat(formatStatValue(statName, winVal).replace(/[^0-9.]/g, ''));
@@ -172,22 +193,22 @@ function hasTie(options, statName) {
         // but simple string comparison works for ties if formatting is identical.
         return fmt;
     });
-    
+
     const isLowestBetter = (statName === 'ERA');
-    
+
     // Find "best" formatted value
     let bestValue = values[0];
     values.forEach(v => {
         const numV = parseFloat(v.startsWith('.') ? '0' + v : v);
         const numBest = parseFloat(bestValue.startsWith('.') ? '0' + bestValue : bestValue);
-        
+
         if (isLowestBetter) {
             if (numV < numBest) bestValue = v;
         } else {
             if (numV > numBest) bestValue = v;
         }
     });
-    
+
     let count = 0;
     values.forEach(v => {
         if (v === bestValue) count++;
@@ -209,7 +230,7 @@ function formatStatValue(statName, value) {
 
 function checkAnswer(selectedName, selectedBtn) {
     const isCorrect = selectedName === currentAnswer;
-    
+
     // Reveal stats for all buttons
     const buttons = UI.optionsContainer.querySelectorAll('.option-btn');
     buttons.forEach((b) => {
@@ -218,7 +239,7 @@ function checkAnswer(selectedName, selectedBtn) {
         if (player) {
             const formattedVal = formatStatValue(currentStat, player.stats[currentStat]);
             b.innerHTML = `${player.name} <span class="stat-reveal">(${formattedVal} ${currentStat})</span>`;
-            
+
             if (player.name === currentAnswer) {
                 b.classList.add('correct');
             }
@@ -247,7 +268,7 @@ function checkAnswer(selectedName, selectedBtn) {
         } else {
             UI.feedback.className = 'feedback error';
             UI.feedback.innerHTML = `Incorrect! That was <strong>${currentAnswer}</strong>.`;
-            
+
             // Shake the lives container
             UI.livesContainer.style.transform = 'translateX(-5px)';
             setTimeout(() => UI.livesContainer.style.transform = 'translateX(5px)', 50);
@@ -273,7 +294,7 @@ function checkAnswer(selectedName, selectedBtn) {
 
 function updateRunner() {
     const position = streak % 4;
-    
+
     if (position === 0) {
         // Show batter at home, hide runner
         UI.batterIcon.style.display = '';
@@ -282,12 +303,12 @@ function updateRunner() {
         // Hide batter, show runner at the appropriate base
         UI.batterIcon.style.display = 'none';
         UI.runnerIcon.style.display = '';
-        
+
         let pos;
         if (position === 1) pos = BASE_POSITIONS.first;
         else if (position === 2) pos = BASE_POSITIONS.second;
         else pos = BASE_POSITIONS.third;
-        
+
         UI.runnerIcon.style.transform = `translate(${pos.x}px, ${pos.y}px)`;
     }
 }
@@ -311,8 +332,10 @@ function resetGame() {
     UI.streakCounter.innerText = streak;
     UI.winScreen.classList.add('hidden');
     UI.loseScreen.classList.add('hidden');
-    updateRunner();
-    nextRound();
+    UI.gameArea.style.display = 'none';
+
+    // Show mode selection again
+    UI.modeScreen.classList.remove('hidden');
 }
 
 function keepPlaying() {
@@ -325,16 +348,16 @@ function playTypewriterAnimation(text) {
     // Clear any pending animation
     if (typingInterval) clearInterval(typingInterval);
     if (typingTimeout) clearTimeout(typingTimeout);
-    
+
     UI.questionText.textContent = '';
     UI.ballIcon.classList.remove('ball-hidden');
     UI.ballIcon.classList.add('ball-visible');
     UI.questionRow.classList.add('animating');
-    
+
     let charIndex = 0;
     const totalChars = text.length;
     const charDelay = 25; // ms per character
-    
+
     typingInterval = setInterval(() => {
         if (charIndex < totalChars) {
             UI.questionText.textContent += text[charIndex];
@@ -342,7 +365,7 @@ function playTypewriterAnimation(text) {
         } else {
             clearInterval(typingInterval);
             typingInterval = null;
-            
+
             // Just keep the ball at the end for 300ms then hide
             typingTimeout = setTimeout(() => {
                 UI.ballIcon.classList.remove('ball-visible');
@@ -357,6 +380,3 @@ UI.nextBtn.addEventListener('click', nextRound);
 UI.resetBtn.addEventListener('click', resetGame);
 UI.loseResetBtn.addEventListener('click', resetGame);
 UI.keepPlayingBtn.addEventListener('click', keepPlaying);
-
-// Initialize the game
-init();

@@ -4,10 +4,51 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Baseball Stat Quiz — Can You Name the Player?</title>
-    <meta name="description" content="Test your baseball knowledge! Given a career stat, can you pick the right player? Hitters and pitchers from 2000+.">
+    <meta name="description" content="Test your baseball knowledge! Given a career stat, can you pick the right player? Choose All-Time or Modern era.">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <!-- ── Mode Selection Screen ── -->
+    <div id="mode-screen" class="mode-overlay">
+        <div class="mode-card">
+            <div class="mode-header">
+                <svg class="mode-baseball" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="30" cy="30" r="28" fill="#f5f5f0" stroke="#cc0000" stroke-width="2"/>
+                    <path d="M18,8 Q10,30 18,52" stroke="#cc0000" stroke-width="1.5" fill="none"/>
+                    <path d="M42,8 Q50,30 42,52" stroke="#cc0000" stroke-width="1.5" fill="none"/>
+                    <!-- stitching ticks left -->
+                    <line x1="16" y1="14" x2="20" y2="16" stroke="#cc0000" stroke-width="0.8"/>
+                    <line x1="14" y1="20" x2="18" y2="21" stroke="#cc0000" stroke-width="0.8"/>
+                    <line x1="13" y1="26" x2="17" y2="26" stroke="#cc0000" stroke-width="0.8"/>
+                    <line x1="13" y1="34" x2="17" y2="34" stroke="#cc0000" stroke-width="0.8"/>
+                    <line x1="14" y1="40" x2="18" y2="39" stroke="#cc0000" stroke-width="0.8"/>
+                    <line x1="16" y1="46" x2="20" y2="44" stroke="#cc0000" stroke-width="0.8"/>
+                    <!-- stitching ticks right -->
+                    <line x1="44" y1="14" x2="40" y2="16" stroke="#cc0000" stroke-width="0.8"/>
+                    <line x1="46" y1="20" x2="42" y2="21" stroke="#cc0000" stroke-width="0.8"/>
+                    <line x1="47" y1="26" x2="43" y2="26" stroke="#cc0000" stroke-width="0.8"/>
+                    <line x1="47" y1="34" x2="43" y2="34" stroke="#cc0000" stroke-width="0.8"/>
+                    <line x1="46" y1="40" x2="42" y2="39" stroke="#cc0000" stroke-width="0.8"/>
+                    <line x1="44" y1="46" x2="40" y2="44" stroke="#cc0000" stroke-width="0.8"/>
+                </svg>
+                <h1 class="mode-title">Baseball Stat Quiz</h1>
+                <p class="mode-subtitle">Choose your era</p>
+            </div>
+            <div class="mode-buttons">
+                <button id="mode-modern-btn" class="mode-btn mode-btn-modern" onclick="selectMode('modern')">
+                    <span class="mode-btn-label">Since 2000</span>
+                    <span class="mode-btn-difficulty">Easy Mode</span>
+                    <span class="mode-btn-desc">Modern players you've watched</span>
+                </button>
+                <button id="mode-alltime-btn" class="mode-btn mode-btn-alltime" onclick="selectMode('alltime')">
+                    <span class="mode-btn-label">All-Time</span>
+                    <span class="mode-btn-difficulty">Hard Mode</span>
+                    <span class="mode-btn-desc">Legends from every era</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="stats-container">
         <div class="streak-container">
             Streak: <span id="streak-counter">0</span>
@@ -19,7 +60,7 @@
         </div>
     </div>
     <div class="card">
-        <div id="loading">Loading players...</div>
+        <div id="loading" class="hidden">Loading players...</div>
         <div id="game-area" style="display: none;">
 
             <!-- ── Baseball Field SVG ── -->
