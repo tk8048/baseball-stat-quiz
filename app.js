@@ -33,7 +33,7 @@ let winScreenShown = false;
 
 const STAT_CONFIG = {
     hitter: ['Home Runs', 'Hits', 'Batting Average'],
-    pitcher: ['ERA', 'Strikeouts']
+    pitcher: ['ERA', 'Strikeouts', 'Wins']
 };
 
 // Base positions in SVG coordinates (translate values for the runner icon)
@@ -80,7 +80,7 @@ function nextRound() {
     currentAnswer = bestPlayer.name;
 
     // Build question
-    const countingStats = ['Home Runs', 'Hits', 'Strikeouts'];
+    const countingStats = ['Home Runs', 'Hits', 'Strikeouts', 'Wins'];
     const rateStats = ['Batting Average', 'ERA'];
     const isLowestBetter = (currentStat === 'ERA');
     
