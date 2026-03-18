@@ -553,7 +553,19 @@ button:disabled:not(.option-btn) {
     to { opacity: 1; transform: translateY(0); }
 }
 
-@media (max-width: 560px) {
+#share-win-btn, #share-lose-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid var(--border);
+    color: var(--text-primary);
+    box-shadow: none;
+    width: 100%;
+}
+
+#share-win-btn:hover, #share-lose-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+
     .card {
         padding: 2rem 1.25rem;
         width: 95%;
