@@ -389,7 +389,7 @@ function shareResult(won) {
     const modeLabel = selectedMode === 'alltime' ? 'All-Time' : 'Since 2000';
     const mistakes = 3 - lives;
     const text = (won && streak === 4)
-        ? `⚾ I beat Baseball Stat Quiz (${modeLabel} mode) with only ${mistakes} mistake${mistakes === 1 ? '' : 's'}! Can you do it? baseballstatquiz.com`
+        ? `⚾ I just beat Baseball Stat Quiz (${modeLabel} mode) with only ${mistakes} mistake${mistakes === 1 ? '' : 's'}! Can you do it? baseballstatquiz.com`
         : `⚾ I reached a streak of ${streak} on Baseball Stat Quiz (${modeLabel} mode). Can you beat me? baseballstatquiz.com`;
 
     if (navigator.share) {
