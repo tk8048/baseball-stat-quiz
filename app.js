@@ -130,6 +130,7 @@ function nextRound() {
     currentOptions.forEach(player => {
         const btn = document.createElement('button');
         btn.className = 'option-btn';
+        btn.dataset.name = player.name;
         btn.innerText = player.name;
         btn.onclick = () => checkAnswer(player.name, btn);
         UI.optionsContainer.appendChild(btn);
@@ -240,7 +241,7 @@ function checkAnswer(selectedName, selectedBtn) {
     const buttons = UI.optionsContainer.querySelectorAll('.option-btn');
     buttons.forEach((b) => {
         b.disabled = true;
-        const player = currentOptions.find(p => p.name === b.innerText);
+        const player = currentOptions.find(p => p.name === b.dataset.name);
         if (player) {
             const formattedVal = formatStatValue(currentStat, player.stats[currentStat]);
             b.innerHTML = `${player.name} <span class="stat-reveal">(${formattedVal} ${currentStat})</span>`;
@@ -275,11 +276,9 @@ function checkAnswer(selectedName, selectedBtn) {
             UI.feedback.innerHTML = `Incorrect! That was <strong>${currentAnswer}</strong>.`;
 
             // Shake the lives container
-            UI.livesContainer.style.transform = 'translateX(-5px)';
-            setTimeout(() => UI.livesContainer.style.transform = 'translateX(5px)', 50);
-            setTimeout(() => UI.livesContainer.style.transform = 'translateX(-5px)', 100);
-            setTimeout(() => UI.livesContainer.style.transform = 'translateX(5px)', 150);
-            setTimeout(() => UI.livesContainer.style.transform = 'translateX(0)', 200);
+            UI.livesContainer.classList.remove('shake');
+            void UI.livesContainer.offsetWidth; // force reflow to restart animation
+            UI.livesContainer.classList.add('shake');
         }
     }
 

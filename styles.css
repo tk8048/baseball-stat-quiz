@@ -3,7 +3,6 @@
 :root {
     --bg-color: #0d1117;
     --card-bg: rgba(30, 36, 44, 0.7);
-    --card-bg-hover: rgba(40, 48, 58, 0.8);
     --text-primary: #f0f6fc;
     --text-secondary: #8b949e;
     --accent: #58a6ff;
@@ -222,7 +221,6 @@ body {
     border-radius: 9999px;
     backdrop-filter: blur(10px);
     box-shadow: 0 4px 15px rgba(248, 81, 73, 0.2);
-    transition: transform 0.2s;
 }
 
 .heart {
@@ -238,6 +236,18 @@ body {
     opacity: 0.3;
     filter: grayscale(1);
     transform: scale(0.85);
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-5px); }
+    40% { transform: translateX(5px); }
+    60% { transform: translateX(-5px); }
+    80% { transform: translateX(5px); }
+}
+
+.lives-container.shake {
+    animation: shake 0.25s ease;
 }
 
 .card {
@@ -322,11 +332,6 @@ body {
     opacity: 0;
     width: 0;
     transform: scale(0);
-}
-
-@keyframes ballBounce {
-    0% { transform: translateY(0); }
-    100% { transform: translateY(-2px); }
 }
 
 .question-text {

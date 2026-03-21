@@ -1,7 +1,10 @@
 import json
+import time
 import urllib.request
 import pandas as pd
 from pybaseball import bwar_bat, bwar_pitch
+
+MIN_PLAYERS = 100  # Refuse to write JSON if fewer than this many players collected
 
 def fetch_json(url):
     """Utility to fetch JSON from a URL."""
@@ -88,6 +91,7 @@ def hydrate_hitters(top_bats):
         })
         if len(players) % 25 == 0:
             print(f"  Processed {len(players)} hitters...")
+        time.sleep(0.1)  # Rate-limit API calls
     return players
 
 def hydrate_pitchers(top_pitch):
@@ -123,6 +127,7 @@ def hydrate_pitchers(top_pitch):
         })
         if len(players) % 25 == 0:
             print(f"  Processed {len(players)} pitchers...")
+        time.sleep(0.1)  # Rate-limit API calls
     return players
 
 def get_players():
@@ -217,25 +222,19 @@ if __name__ == "__main__":
     try:
         alltime, modern, current = get_players()
 
-        if alltime:
-            with open('players_alltime.json', 'w') as f:
-                json.dump(alltime, f, separators=(',', ':'))
-            print(f"\nSuccess! Generated players_alltime.json with {len(alltime)} players.")
-        else:
-            print("\nNo all-time data collected. Check your internet connection.")
-
-        if modern:
-            with open('players_modern.json', 'w') as f:
-                json.dump(modern, f, separators=(',', ':'))
-            print(f"Success! Generated players_modern.json with {len(modern)} players.")
-        else:
-            print("\nNo modern data collected. Check your internet connection.")
-
-        if current:
-            with open('players_current.json', 'w') as f:
-                json.dump(current, f, separators=(',', ':'))
-            print(f"Success! Generated players_current.json with {len(current)} players.")
-        else:
-            print("\nNo current data collected. Check your internet connection.")
+        for label, data, filename in [
+            ('All-time', alltime, 'players_alltime.json'),
+            ('Modern',   modern,  'players_modern.json'),
+            ('Current',  current, 'players_current.json'),
+        ]:
+            if not data:
+                print(f"\nNo {label.lower()} data collected. Check your internet connection.")
+            elif len(data) < MIN_PLAYERS:
+                print(f"\nWARNING: Only got {len(data)} {label.lower()} players "
+                      f"(minimum {MIN_PLAYERS}). Keeping existing {filename}.")
+            else:
+                with open(filename, 'w') as f:
+                    json.dump(data, f, separators=(',', ':'))
+                print(f"Success! Generated {filename} with {len(data)} players.")
     except Exception as e:
         print(f"\nError: {e}")
