@@ -27,6 +27,34 @@ def get_modern_mlb_ids(bat_war_df, pitch_war_df):
     )
     return modern_bat_ids, modern_pitch_ids
 
+def get_current_mlb_ids():
+    """
+    Return a set of mlb_IDs for players currently on active MLB rosters.
+    Fetches 40-man rosters for all 30 teams from the MLB Stats API.
+    """
+    current_ids = set()
+    # Fetch all MLB teams
+    teams_url = "https://statsapi.mlb.com/api/v1/teams?sportId=1"
+    teams_data = fetch_json(teams_url)
+    if not teams_data or 'teams' not in teams_data:
+        print("Warning: Could not fetch MLB teams list.")
+        return current_ids
+
+    team_ids = [t['id'] for t in teams_data['teams']]
+    print(f"Fetching rosters for {len(team_ids)} MLB teams...")
+
+    for tid in team_ids:
+        roster_url = f"https://statsapi.mlb.com/api/v1/teams/{tid}/roster?rosterType=40Man"
+        roster_data = fetch_json(roster_url)
+        if roster_data and 'roster' in roster_data:
+            for entry in roster_data['roster']:
+                pid = entry.get('person', {}).get('id')
+                if pid:
+                    current_ids.add(int(pid))
+
+    print(f"Found {len(current_ids)} players on current 40-man rosters.")
+    return current_ids
+
 def hydrate_hitters(top_bats):
     """Fetch career stats from MLB Stats API for a set of hitters."""
     players = []
@@ -100,10 +128,12 @@ def hydrate_pitchers(top_pitch):
 def get_players():
     """
     Fetches real bWAR data from Baseball-Reference via pybaseball,
-    then produces TWO player lists:
+    then produces THREE player lists:
       - alltime:  top-150 hitters + top-150 pitchers by career WAR (all eras)
       - modern:   top-150 hitters + top-150 pitchers by career WAR,
                   filtered to only players who appeared in a season >= 2000
+      - current:  top-150 hitters + top-150 pitchers by career WAR,
+                  filtered to only players on active MLB 40-man rosters
     """
     print("Loading bWAR data from pybaseball (Baseball-Reference)...")
     try:
@@ -120,6 +150,9 @@ def get_players():
         modern_bat_ids, modern_pitch_ids = get_modern_mlb_ids(bat_war_df, pitch_war_df)
         print(f"Found {len(modern_bat_ids)} modern hitters and {len(modern_pitch_ids)} modern pitchers (played in 2000+).")
 
+        # Get current active MLB player IDs
+        current_ids = get_current_mlb_ids()
+
         # Aggregate career WAR by mlb_ID
         bat_career = bat_war_df.groupby('mlb_ID')['WAR'].sum().reset_index()
         pitch_career = pitch_war_df.groupby('mlb_ID')['WAR'].sum().reset_index()
@@ -134,11 +167,18 @@ def get_players():
         top_bats_modern = bat_career_modern.sort_values('WAR', ascending=False).head(150)
         top_pitch_modern = pitch_career_modern.sort_values('WAR', ascending=False).head(150)
 
+        # ── Current: filter to active roster IDs, then top 150 each ──
+        bat_career_current = bat_career[bat_career['mlb_ID'].isin(current_ids)]
+        pitch_career_current = pitch_career[pitch_career['mlb_ID'].isin(current_ids)]
+        top_bats_current = bat_career_current.sort_values('WAR', ascending=False).head(150)
+        top_pitch_current = pitch_career_current.sort_values('WAR', ascending=False).head(150)
+
         print(f"All-time pool: {len(top_bats_alltime)} hitters, {len(top_pitch_alltime)} pitchers.")
         print(f"Modern pool:   {len(top_bats_modern)} hitters, {len(top_pitch_modern)} pitchers.")
+        print(f"Current pool:  {len(top_bats_current)} hitters, {len(top_pitch_current)} pitchers.")
     except Exception as e:
         print(f"Error processing bWAR data: {e}")
-        return None, None
+        return None, None, None
 
     # ── Hydrate all-time ──
     print("\n=== Hydrating ALL-TIME Hitters ===")
@@ -158,14 +198,24 @@ def get_players():
     modern_pitchers = hydrate_pitchers(top_pitch_modern)
     print(f"  Total modern pitchers: {len(modern_pitchers)}")
 
+    # ── Hydrate current ──
+    print("\n=== Hydrating CURRENT Hitters ===")
+    current_hitters = hydrate_hitters(top_bats_current)
+    print(f"  Total current hitters: {len(current_hitters)}")
+
+    print("\n=== Hydrating CURRENT Pitchers ===")
+    current_pitchers = hydrate_pitchers(top_pitch_current)
+    print(f"  Total current pitchers: {len(current_pitchers)}")
+
     alltime = alltime_hitters + alltime_pitchers
     modern = modern_hitters + modern_pitchers
+    current = current_hitters + current_pitchers
 
-    return alltime, modern
+    return alltime, modern, current
 
 if __name__ == "__main__":
     try:
-        alltime, modern = get_players()
+        alltime, modern, current = get_players()
 
         if alltime:
             with open('players_alltime.json', 'w') as f:
@@ -180,5 +230,12 @@ if __name__ == "__main__":
             print(f"Success! Generated players_modern.json with {len(modern)} players.")
         else:
             print("\nNo modern data collected. Check your internet connection.")
+
+        if current:
+            with open('players_current.json', 'w') as f:
+                json.dump(current, f, separators=(',', ':'))
+            print(f"Success! Generated players_current.json with {len(current)} players.")
+        else:
+            print("\nNo current data collected. Check your internet connection.")
     except Exception as e:
         print(f"\nError: {e}")

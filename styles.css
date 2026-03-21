@@ -112,6 +112,16 @@
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
 }
 
+.mode-btn-current {
+    border-color: rgba(88, 166, 255, 0.4);
+}
+
+.mode-btn-current:hover {
+    background: rgba(88, 166, 255, 0.15);
+    border-color: var(--accent);
+    box-shadow: 0 8px 25px rgba(88, 166, 255, 0.2);
+}
+
 .mode-btn-modern {
     border-color: rgba(46, 160, 67, 0.4);
 }
@@ -136,21 +146,6 @@
     font-size: 1.3rem;
     font-weight: 800;
     color: var(--text-primary);
-}
-
-.mode-btn-difficulty {
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-}
-
-.mode-btn-modern .mode-btn-difficulty {
-    color: var(--success);
-}
-
-.mode-btn-alltime .mode-btn-difficulty {
-    color: var(--danger);
 }
 
 .mode-btn-desc {
@@ -566,6 +561,7 @@ button:disabled:not(.option-btn) {
 }
 
 
+@media (max-width: 600px) {
     .card {
         padding: 2rem 1.25rem;
         width: 95%;

@@ -54,14 +54,16 @@
                 <p class="mode-subtitle">Choose your game mode</p>
             </div>
             <div class="mode-buttons">
+                <button id="mode-current-btn" class="mode-btn mode-btn-current" onclick="selectMode('current')">
+                    <span class="mode-btn-label">Current Players</span>
+                    <span class="mode-btn-desc">Active MLB rosters</span>
+                </button>
                 <button id="mode-modern-btn" class="mode-btn mode-btn-modern" onclick="selectMode('modern')">
                     <span class="mode-btn-label">Since 2000</span>
-                    <span class="mode-btn-difficulty">Easy Mode</span>
                     <span class="mode-btn-desc">Players you've watched</span>
                 </button>
                 <button id="mode-alltime-btn" class="mode-btn mode-btn-alltime" onclick="selectMode('alltime')">
                     <span class="mode-btn-label">All-Time</span>
-                    <span class="mode-btn-difficulty">Hard Mode</span>
                     <span class="mode-btn-desc">Greats from every era</span>
                 </button>
             </div>

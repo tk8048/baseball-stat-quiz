@@ -68,7 +68,10 @@ async function init() {
         UI.loading.classList.remove('hidden');
 
         // Choose the correct JSON file based on selected mode
-        const jsonFile = selectedMode === 'alltime' ? 'players_alltime.json' : 'players_modern.json';
+        let jsonFile;
+        if (selectedMode === 'alltime') jsonFile = 'players_alltime.json';
+        else if (selectedMode === 'current') jsonFile = 'players_current.json';
+        else jsonFile = 'players_modern.json';
         const res = await fetch(jsonFile);
         players = await res.json();
 
@@ -386,7 +389,8 @@ UI.shareWinBtn.addEventListener('click', () => shareResult(true));
 UI.shareLoseBtn.addEventListener('click', () => shareResult(false));
 
 function shareResult(won) {
-    const modeLabel = selectedMode === 'alltime' ? 'All-Time' : 'Since 2000';
+    const modeLabels = { alltime: 'All-Time', modern: 'Since 2000', current: 'Current Players' };
+    const modeLabel = modeLabels[selectedMode] || selectedMode;
     const mistakes = 3 - lives;
     const text = (won && streak === 4)
         ? `⚾ I just beat Baseball Stat Quiz (${modeLabel} mode) with only ${mistakes} mistake${mistakes === 1 ? '' : 's'}! Can you do it? baseballstatquiz.com`
