@@ -128,8 +128,8 @@ function nextRound() {
     UI.feedback.className = 'feedback hidden';
     UI.nextBtn.classList.add('hidden');
 
-    // Play typewriter animation (highlight direction word on reverse questions)
-    playTypewriterAnimation(questionText, isReverse ? currentDirectionLabel : null);
+    // Play typewriter animation
+    playTypewriterAnimation(questionText);
 
     // Create buttons
     currentOptions.forEach(player => {
@@ -350,7 +350,7 @@ function keepPlaying() {
     UI.nextBtn.focus();
 }
 
-function playTypewriterAnimation(text, highlightWord = null) {
+function playTypewriterAnimation(text) {
     // Clear any pending animation
     if (typingInterval) clearInterval(typingInterval);
     if (typingTimeout) clearTimeout(typingTimeout);
@@ -360,39 +360,13 @@ function playTypewriterAnimation(text, highlightWord = null) {
     UI.ballIcon.classList.add('ball-visible');
     UI.questionRow.classList.add('animating');
 
-    const highlightStart = highlightWord ? text.indexOf(highlightWord) : -1;
-    const highlightEnd = highlightStart !== -1 ? highlightStart + highlightWord.length : -1;
-
-    let beforeNode = null;
-    let highlightSpan = null;
-    let afterNode = null;
-
-    if (highlightStart !== -1) {
-        beforeNode = document.createTextNode('');
-        highlightSpan = document.createElement('span');
-        highlightSpan.className = 'reverse-keyword';
-        afterNode = document.createTextNode('');
-        UI.questionText.appendChild(beforeNode);
-        UI.questionText.appendChild(highlightSpan);
-        UI.questionText.appendChild(afterNode);
-    }
-
     let charIndex = 0;
     const totalChars = text.length;
     const charDelay = 25; // ms per character
 
     typingInterval = setInterval(() => {
         if (charIndex < totalChars) {
-            const ch = text[charIndex];
-            if (highlightStart === -1) {
-                UI.questionText.textContent += ch;
-            } else if (charIndex < highlightStart) {
-                beforeNode.textContent += ch;
-            } else if (charIndex < highlightEnd) {
-                highlightSpan.textContent += ch;
-            } else {
-                afterNode.textContent += ch;
-            }
+            UI.questionText.textContent += text[charIndex];
             charIndex++;
         } else {
             clearInterval(typingInterval);
