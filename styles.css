@@ -344,6 +344,13 @@ body {
     overflow-wrap: break-word;
 }
 
+.reverse-keyword {
+    color: #f0b429;
+    font-weight: 800;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
 @keyframes ballBounce {
     0% { transform: translateY(0) rotate(0deg); }
     100% { transform: translateY(-3px) rotate(15deg); }

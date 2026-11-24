@@ -35,6 +35,8 @@ let lives = 3;
 let winScreenShown = false;
 let selectedMode = null;
 
+const REVERSE_QUESTION_CHANCE = 0.2;
+
 const STAT_CONFIG = {
     hitter: ['Home Runs', 'Hits', 'Batting Average'],
     pitcher: ['ERA', 'Strikeouts', 'Wins']
@@ -98,22 +100,25 @@ function nextRound() {
     const availableStats = STAT_CONFIG[selectedType];
     currentStat = availableStats[Math.floor(Math.random() * availableStats.length)];
 
-    // Generate options and determine winner
-    currentOptions = generateOptions(selectedType, currentStat);
+    // 20% chance of a reverse question (fewest/lowest instead of most/highest, or highest ERA)
+    const isReverse = Math.random() < REVERSE_QUESTION_CHANCE;
+    const normallyLowest = (currentStat === 'ERA');
+    const pickLowest = isReverse ? !normallyLowest : normallyLowest;
 
-    // The correct answer is the player with the "best" stat
-    const bestPlayer = determineWinner(currentOptions, currentStat);
+    // Generate options and determine winner
+    currentOptions = generateOptions(selectedType, currentStat, pickLowest);
+
+    // The correct answer is the player with the target (highest or lowest) stat
+    const bestPlayer = determineWinner(currentOptions, currentStat, pickLowest);
     currentAnswer = bestPlayer.name;
 
     // Build question
     const countingStats = ['Home Runs', 'Hits', 'Strikeouts', 'Wins'];
-    const rateStats = ['Batting Average', 'ERA'];
-    const isLowestBetter = (currentStat === 'ERA');
 
     if (countingStats.includes(currentStat)) {
-        currentDirectionLabel = isLowestBetter ? 'fewest' : 'most';
+        currentDirectionLabel = pickLowest ? 'fewest' : 'most';
     } else {
-        currentDirectionLabel = isLowestBetter ? 'lowest' : 'highest';
+        currentDirectionLabel = pickLowest ? 'lowest' : 'highest';
     }
 
     const questionText = `Which of these players has the ${currentDirectionLabel} career ${currentStat}?`;
@@ -123,8 +128,8 @@ function nextRound() {
     UI.feedback.className = 'feedback hidden';
     UI.nextBtn.classList.add('hidden');
 
-    // Play typewriter animation
-    playTypewriterAnimation(questionText);
+    // Play typewriter animation (highlight direction word on reverse questions)
+    playTypewriterAnimation(questionText, isReverse ? currentDirectionLabel : null);
 
     // Create buttons
     currentOptions.forEach(player => {
@@ -137,7 +142,7 @@ function nextRound() {
     });
 }
 
-function generateOptions(type, statName, depth = 0) {
+function generateOptions(type, statName, pickLowest, depth = 0) {
     // Pick a seed player
     const typePlayers = players.filter(p => p.type === type);
     const seed = typePlayers[Math.floor(Math.random() * typePlayers.length)];
@@ -162,16 +167,15 @@ function generateOptions(type, statName, depth = 0) {
 
     // Ensure there is only one winner. 
     // depth < 5 prevents infinite recursion in case of bad data.
-    if (hasTie(options, statName) && depth < 5) {
-        return generateOptions(type, statName, depth + 1);
+    if (hasTie(options, statName, pickLowest) && depth < 5) {
+        return generateOptions(type, statName, pickLowest, depth + 1);
     }
 
     return options.sort(() => Math.random() - 0.5);
 }
 
-function determineWinner(options, statName) {
+function determineWinner(options, statName, pickLowest) {
     let winner = options[0];
-    const isLowestBetter = (statName === 'ERA');
 
     options.forEach(p => {
         const val = p.stats[statName];
@@ -181,7 +185,7 @@ function determineWinner(options, statName) {
         const fmtVal = parseFloat(formatStatValue(statName, val).replace(/[^0-9.]/g, ''));
         const fmtWinVal = parseFloat(formatStatValue(statName, winVal).replace(/[^0-9.]/g, ''));
 
-        if (isLowestBetter) {
+        if (pickLowest) {
             if (fmtVal < fmtWinVal) winner = p;
         } else {
             if (fmtVal > fmtWinVal) winner = p;
@@ -191,7 +195,7 @@ function determineWinner(options, statName) {
     return winner;
 }
 
-function hasTie(options, statName) {
+function hasTie(options, statName, pickLowest) {
     // Compare formatted values because that's what the user sees
     const values = options.map(p => {
         const fmt = formatStatValue(statName, p.stats[statName]);
@@ -200,15 +204,13 @@ function hasTie(options, statName) {
         return fmt;
     });
 
-    const isLowestBetter = (statName === 'ERA');
-
-    // Find "best" formatted value
+    // Find "best" formatted value for the target direction
     let bestValue = values[0];
     values.forEach(v => {
         const numV = parseFloat(v.startsWith('.') ? '0' + v : v);
         const numBest = parseFloat(bestValue.startsWith('.') ? '0' + bestValue : bestValue);
 
-        if (isLowestBetter) {
+        if (pickLowest) {
             if (numV < numBest) bestValue = v;
         } else {
             if (numV > numBest) bestValue = v;
@@ -348,7 +350,7 @@ function keepPlaying() {
     UI.nextBtn.focus();
 }
 
-function playTypewriterAnimation(text) {
+function playTypewriterAnimation(text, highlightWord = null) {
     // Clear any pending animation
     if (typingInterval) clearInterval(typingInterval);
     if (typingTimeout) clearTimeout(typingTimeout);
@@ -358,13 +360,39 @@ function playTypewriterAnimation(text) {
     UI.ballIcon.classList.add('ball-visible');
     UI.questionRow.classList.add('animating');
 
+    const highlightStart = highlightWord ? text.indexOf(highlightWord) : -1;
+    const highlightEnd = highlightStart !== -1 ? highlightStart + highlightWord.length : -1;
+
+    let beforeNode = null;
+    let highlightSpan = null;
+    let afterNode = null;
+
+    if (highlightStart !== -1) {
+        beforeNode = document.createTextNode('');
+        highlightSpan = document.createElement('span');
+        highlightSpan.className = 'reverse-keyword';
+        afterNode = document.createTextNode('');
+        UI.questionText.appendChild(beforeNode);
+        UI.questionText.appendChild(highlightSpan);
+        UI.questionText.appendChild(afterNode);
+    }
+
     let charIndex = 0;
     const totalChars = text.length;
     const charDelay = 25; // ms per character
 
     typingInterval = setInterval(() => {
         if (charIndex < totalChars) {
-            UI.questionText.textContent += text[charIndex];
+            const ch = text[charIndex];
+            if (highlightStart === -1) {
+                UI.questionText.textContent += ch;
+            } else if (charIndex < highlightStart) {
+                beforeNode.textContent += ch;
+            } else if (charIndex < highlightEnd) {
+                highlightSpan.textContent += ch;
+            } else {
+                afterNode.textContent += ch;
+            }
             charIndex++;
         } else {
             clearInterval(typingInterval);
